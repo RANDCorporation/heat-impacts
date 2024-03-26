@@ -8,7 +8,10 @@ ui <- fluidPage(
 
     ################### Headings
     title = "HeatRisk in LA County",
-    h2("How does heat affect Los Angeles County?"),
+    h2("PROTYPE TOOL - FOR INTERNAL USE ONLY"),
+    h3("Data you upload is hosted, but not saved, on shinyapps.io"),
+    h3( tags$a(href="https://docs.posit.co/shinyapps.io/security-and-compliance.html", 
+               "Shinyapps security and compliance policy")),
 
     ################### Side-bar
     sidebarLayout(
