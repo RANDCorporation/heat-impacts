@@ -142,13 +142,6 @@ server <- function(input, output, session) {
       start_date = input$filter_dates[1],
       end_date = input$filter_dates[2]
     )
-    
-    # ## Calculate means
-    # data <- CalculateControlMeans(
-    #   data = data,
-    #   outcome_var = input$current_outcome
-    # )
-
     return(data)
   })
 

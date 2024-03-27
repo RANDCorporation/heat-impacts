@@ -87,28 +87,6 @@ GetControlObservations <- function(data, control_days, outcome_var){
   return(data)
 }
 
-
-################################################################################
-
-## Obsolete function, now we pivot controls to get correct standard errors
-
-# CalculateControlMeans <- function(data, outcome_var){
-#   
-#   outcome_var <- as.name(outcome_var)
-#   
-#   ## Calculate control mean
-#   data <- data %>%
-#     ## Control mean is the mean of all controls, removing NAs
-#     mutate(control_mean = rowMeans(select(., starts_with(".control#_#")), na.rm = TRUE),
-#            ## The difference is the effect
-#            diff := !!outcome_var - control_mean) %>%
-#     ## Remove invidividual control observations
-#     select(-starts_with(".control#_#"))
-#   
-#   return(data)
-#   
-# }
-
 ################################################################################
 
 FilterDate <- function(data, start_date = NULL, end_date = NULL){
@@ -175,28 +153,6 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes){
                           data = data,
                           weights = ~weight)
   
-  # regression_mod <- lm(value ~ HeatRisk + 0,
-  #                      data = data,
-  #                      weights = weight)
-  
-  # tmp <- data %>%
-  #   mutate(value_weight = value * weight) %>%
-  #   group_by(HeatRisk, Date) %>%
-  #   summarize(diff = sum(value_weight), .groups = "drop") %>%
-  #   group_by(HeatRisk) %>%
-  #   summarize(mean = mean(diff))
-
-  # 
-  # matches <- data %>%
-  #   filter(HeatRisk_num == 4) %>%
-  #   mutate(num_controls = 1/weight) %>%
-  #   group_by(Date) %>%
-  #   summarize(HeatRisk = first(HeatRisk), num_controls = first(num_controls)) %>%
-  #   group_by(HeatRisk, num_controls) %>%
-  # 
-  #   count() %>%
-  #   pivot_wider(names_from = HeatRisk, values_from = n)
-  
   ## Use tidy to get the regresssion coefficients in a data.frame and estimate 
   ## confidence intervals
   regression_coef <- tidy(regression_mod, conf.int = TRUE,
@@ -211,28 +167,6 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes){
   
   return(regression_coef)
 }
-
-
-# ## Old version of function which didn't estimate standard errors correctly
-# GetHeatCoefficients <- function(data){
-#   
-#   ## Fit regression model, "+0" tells it not to add an intercept
-#   regression_mod <- lm("diff ~ HeatRisk + 0", data = data)
-#   
-#   ## Use tidy to get the regresssion coefficients in a data.frame and estimate 
-#   ## confidence intervals
-#   regression_coef <- tidy(regression_mod, conf.int = TRUE,
-#                           conf.level = 0.95) %>%
-#     ## Remove HeatRisk from terms and instead make it the column title
-#     mutate(term = gsub("^HeatRisk", "", term)) %>%
-#     rename(HeatRisk = term) %>%
-#     ## Set order of HeatRisk for plotting
-#     mutate(HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme"))) %>%
-#     rename(Estimate = estimate) %>%
-#     mutate(across(c(Estimate, std.error, conf.low, conf.high), \(x) signif(x, digits = 4)))
-#   
-#   return(regression_coef)
-# }
 
 ################################################################################
 
