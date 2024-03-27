@@ -12,57 +12,70 @@ source("./tool_library.R")
 start_date <- ymd("2010-01-01")
 end_date <- NULL
 weeks_of_controls <- 3
+exclude_holidays <- FALSE
 
 control_days <- seq(from = 7, to = 7 * weeks_of_controls, by = 7)
 
-data <- list()
-heat_coefficients <- list()
-coefficient_table <- list()
-timeline_plots <- list()
-coef_plots <- list()
-
 ### Read in data
-set.seed(1)
-# heatrisk <- read.csv("./data/heat_risk_v2-5.csv")
-# outcome <- read.csv("./data/coroner_mortality.csv")
-data$base <- read.csv("./data/input_data_1.csv", check.names = FALSE)
+base_data <- read.csv("./data/input_data_1.csv", check.names = FALSE)
 
 ## Get outcome names
-outcome_names <- colnames(data$base)[!(colnames(data$base) %in% c("Date", "HeatRisk"))]
+outcome_names <- colnames(base_data)[!(colnames(base_data) %in% c("Date", "HeatRisk"))]
+current_outcome <- "EMS Calls"
+other_outcomes <- setdiff(outcome_names, current_outcome)
 
-data$base <- FormatData(data = data$base)
+base_data <- FormatData(data = base_data)
 
-for (current_outcome in outcome_names) {
-  data[[current_outcome]] <- CalculateControlMean(
-    data = data$base,
+## Check
+base_data %>%
+  filter(HeatRisk_num == 4) 
+
+holiday_dates <- ymd(federalHolidays(
+  years = year(min(base_data$Date)):year(max(base_data$Date)),
+  businessOnly = FALSE)
+  )
+
+if(exclude_holidays){
+  base_data <- HolidaysToNA(data = base_data, 
+                            holiday_dates = holiday_dates)
+}
+
+data <- GetControlObservations(
+    data = base_data,
     control_days = control_days,
     outcome_var = current_outcome
-  )
+)
+
+# data <- CalculateControlMeans(
+#   data = data,
+#   outcome_var = current_outcome
+# )
 
 
-  data[[current_outcome]] <- FilterDate(
-    data = data[[current_outcome]],
-    start_date = start_date,
-    end_date = end_date
-  )
+data <- FilterDate(
+  data = data,
+  start_date = start_date,
+  end_date = end_date
+)
 
-heat_coefficients[[current_outcome]] <- GetHeatCoefficients(data = data[[current_outcome]])
+heat_coefficients <- GetHeatCoefficients(data = data,
+                                         current_outcome = current_outcome,
+                                         other_outcomes = other_outcomes)
   
-coefficient_table[[current_outcome]] <- FormatCoefficientTable(data = data[[current_outcome]], 
-                                                               heat_coefficients = heat_coefficients[[current_outcome]], 
-                                                               current_outcome = current_outcome)
+coefficient_table <- FormatCoefficientTable(data = data, 
+                                            heat_coefficients = heat_coefficients, 
+                                            current_outcome = current_outcome)
   
 
-
-  timeline_plots[[current_outcome]] <- PlotTimeline(
-    data = data[[current_outcome]],
+PlotTimeline(
+    data = data,
     outcome_var = current_outcome,
     plot_var = plot_var
   )
 
-  coef_plots[[current_outcome]] <- PlotCoef(
-    regression_coef = heat_coefficients[[current_outcome]],
+PlotCoef(
+    regression_coef = heat_coefficients,
     outcome_var = current_outcome,
     plot_var = plot_var
   )
-}
+

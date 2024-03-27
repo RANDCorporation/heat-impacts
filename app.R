@@ -72,12 +72,34 @@ server <- function(input, output, session) {
     
     ## Apply formatting
     base_data <- FormatData(data = base_data)
+    
+    return(base_data)
   })
 
   
   ########## Get outcome names
   outcome_names <- reactive({
     colnames(base_data()[!(colnames(base_data()) %in% c("Date", "HeatRisk", "HeatRisk_num"))])
+  })
+  other_outcomes <- reactive({
+    setdiff(outcome_names(), input$current_outcome)
+  })
+  
+  holiday_dates <- reactive({
+    ymd(federalHolidays(years = year(min(base_data()$Date)):year(max(base_data()$Date)),
+    businessOnly = FALSE)
+    )
+  })
+  
+  holiday_data <- reactive({
+    if(input$holiday_exclude){
+      holiday_data <- HolidaysToNA(data = base_data(), 
+                                    holiday_dates = holiday_dates())
+      
+      return(holiday_data)
+    }
+    
+    return(base_data())
   })
 
   ################### Upon new data, update buttons  
@@ -107,9 +129,9 @@ server <- function(input, output, session) {
   ########## Update data
   current_data <- reactive({
     
-    ## Calculate means
-    data <- CalculateControlMean(
-      data = base_data(),
+    ## Get control observations
+    data <- GetControlObservations(
+      data = holiday_data(),
       control_days = control_days(),
       outcome_var = input$current_outcome
     )
@@ -120,13 +142,21 @@ server <- function(input, output, session) {
       start_date = input$filter_dates[1],
       end_date = input$filter_dates[2]
     )
+    
+    # ## Calculate means
+    # data <- CalculateControlMeans(
+    #   data = data,
+    #   outcome_var = input$current_outcome
+    # )
 
     return(data)
   })
 
   ########## Fit models and get coefficients
   heat_coefficients <- reactive({
-    GetHeatCoefficients(data = current_data())
+    GetHeatCoefficients(data = current_data(),
+                        current_outcome = input$current_outcome,
+                        other_outcomes = other_outcomes())
   })
 
   ################### Create tables and plots based on current data
@@ -238,9 +268,15 @@ server <- function(input, output, session) {
         ########## Weeks of controls
         selectInput("weeks_of_controls",
           "Number of weekly lagging and leading controls",
-          choices = 1:8,
+          choices = 1:6,
           selected = 3
-        )
+        ),
+        
+        ########## Exclude holidays
+        strong("Holidays"),
+        checkboxInput("holiday_exclude",
+                      "Exclude federal holidays from calculations",
+                      value = FALSE)
       )
     )
   })

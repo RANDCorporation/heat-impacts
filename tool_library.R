@@ -1,8 +1,10 @@
 ## Import Packages
 library(cowplot)
+library(tis)
 library(DT)
 library(plotly)
 library(ggplot2)
+library(fixest)
 library(broom)
 library(lubridate)
 library(purrr)
@@ -50,14 +52,23 @@ FormatData <- function(data){
 
 ################################################################################
 
-CalculateControlMean <- function(data, control_days, outcome_var){
+HolidaysToNA <- function(data, holiday_dates){
+  data <- data %>%
+    ## Exclude HeatRisk so we don't mess with factor levels, 
+    ## otherwise write columns to NA if holiday
+    mutate(across(c(-Date, -HeatRisk), ~ifelse(Date %in% holiday_dates, NA, .)))
+}
+
+################################################################################
+
+GetControlObservations <- function(data, control_days, outcome_var){
   
   ## Create lead and lag control for each control day
   for(control_day in control_days){
     
     ## Create names for dynamic variables
-    lag_name <- as.name(glue(".control_lag_{control_day}"))
-    lead_name <- as.name(glue(".control_lead_{control_day}"))
+    lag_name <- as.name(glue(".diff#_#lag#_#{control_day}"))
+    lead_name <- as.name(glue(".diff#_#lead#_#{control_day}"))
     outcome_var <- as.name(outcome_var)
     
     ## Day can be a control day if the HeatRisk score is low enough (None or minor),
@@ -65,25 +76,38 @@ CalculateControlMean <- function(data, control_days, outcome_var){
     data <- data %>%
       ## Lags
       mutate(!!lag_name := ifelse(lag(HeatRisk_num, n = control_day, default = NA) %in% c(0, 1), 
-                                  lag(!!outcome_var, n = control_day, default = NA),
+                                  !!outcome_var - lag(!!outcome_var, n = control_day, default = NA),
                                   NA),
              ## Leads
              !!lead_name := ifelse(lead(HeatRisk_num, n = control_day, default = NA) %in% c(0, 1), 
-                                   lead(!!outcome_var, n = control_day, default = NA),
+                                   !!outcome_var - lead(!!outcome_var, n = control_day, default = NA),
                                    NA))
   }
   
-  ## Calculate control mean
-  data <- data %>%
-    ## Control mean is the mean of all controls, removing NAs
-    mutate(control_mean = rowMeans(select(., starts_with(".control_")), na.rm = TRUE),
-           ## The difference is the effect
-           diff := !!outcome_var - control_mean) %>%
-    ## Remove invidividual control observations
-    select(-starts_with(".control_"))
-  
   return(data)
 }
+
+
+################################################################################
+
+## Obsolete function, now we pivot controls to get correct standard errors
+
+# CalculateControlMeans <- function(data, outcome_var){
+#   
+#   outcome_var <- as.name(outcome_var)
+#   
+#   ## Calculate control mean
+#   data <- data %>%
+#     ## Control mean is the mean of all controls, removing NAs
+#     mutate(control_mean = rowMeans(select(., starts_with(".control#_#")), na.rm = TRUE),
+#            ## The difference is the effect
+#            diff := !!outcome_var - control_mean) %>%
+#     ## Remove invidividual control observations
+#     select(-starts_with(".control#_#"))
+#   
+#   return(data)
+#   
+# }
 
 ################################################################################
 
@@ -106,10 +130,72 @@ FilterDate <- function(data, start_date = NULL, end_date = NULL){
 
 ################################################################################
 
-GetHeatCoefficients <- function(data){
+GetHeatCoefficients <- function(data, current_outcome, other_outcomes){
   
-  ## Fit regression model, "+0" tells it not to add an intercept
-  regression_mod <- lm("diff ~ HeatRisk + 0", data = data)
+  current_outcome_name <- as.name(current_outcome)
+  
+  data <- data %>%
+    ## Remove other outcomes so we can pivot
+    select(-all_of(other_outcomes)) %>%
+    ## Calculate the control mean so we can remove observations with no non-NA controls
+    mutate(diff_mean = rowMeans(select(., starts_with(".diff#_#")), na.rm = TRUE)) %>%
+    ## Remove treated days with no value, or days where there are no matched controls
+    filter(!is.na(diff_mean),
+           !is.na(!!current_outcome_name)) %>%
+    ## Remove the control mean and original value, since it's no longer needed
+    select(-diff_mean, -!!current_outcome_name) %>%
+    ## Pivot so each row is a control or treatment observation
+    pivot_longer(starts_with(".diff#_#")) %>%
+    ## Remove controls with no observation
+    filter(!is.na(value),
+           !is.na(HeatRisk),
+           
+           ## Optionally remove the none and moderate heatrisk observations
+           #HeatRisk_num > 1
+    ) %>%
+    ## Calculate day_ids, by first splitting the control name
+    separate_wider_delim(name, 
+                         names = c("control", "lead_lag", "offset"), 
+                         delim = "#_#",
+                         too_few = "align_start",
+                         cols_remove = TRUE) %>%
+    ## Then assign the day ID as the date
+    mutate(day_id = as.numeric(Date),
+           offset = as.numeric(offset),
+           ## Offset the day_id by the lead or lag amount
+           day_id = ifelse(lead_lag == "lead", day_id + offset, day_id),
+           day_id = ifelse(lead_lag == "lag", day_id - offset, day_id)) %>%
+    group_by(Date) %>%
+    mutate(weight = 1/n()) %>%
+    ungroup()
+  
+  # Run the regression, clustering at the day_id level, to account for repeated observations
+  regression_mod <- feols(value ~ HeatRisk + 0,
+                          cluster = c("Date", "day_id"),
+                          data = data,
+                          weights = ~weight)
+  
+  # regression_mod <- lm(value ~ HeatRisk + 0,
+  #                      data = data,
+  #                      weights = weight)
+  
+  # tmp <- data %>%
+  #   mutate(value_weight = value * weight) %>%
+  #   group_by(HeatRisk, Date) %>%
+  #   summarize(diff = sum(value_weight), .groups = "drop") %>%
+  #   group_by(HeatRisk) %>%
+  #   summarize(mean = mean(diff))
+
+  # 
+  # matches <- data %>%
+  #   filter(HeatRisk_num == 4) %>%
+  #   mutate(num_controls = 1/weight) %>%
+  #   group_by(Date) %>%
+  #   summarize(HeatRisk = first(HeatRisk), num_controls = first(num_controls)) %>%
+  #   group_by(HeatRisk, num_controls) %>%
+  # 
+  #   count() %>%
+  #   pivot_wider(names_from = HeatRisk, values_from = n)
   
   ## Use tidy to get the regresssion coefficients in a data.frame and estimate 
   ## confidence intervals
@@ -126,14 +212,40 @@ GetHeatCoefficients <- function(data){
   return(regression_coef)
 }
 
+
+# ## Old version of function which didn't estimate standard errors correctly
+# GetHeatCoefficients <- function(data){
+#   
+#   ## Fit regression model, "+0" tells it not to add an intercept
+#   regression_mod <- lm("diff ~ HeatRisk + 0", data = data)
+#   
+#   ## Use tidy to get the regresssion coefficients in a data.frame and estimate 
+#   ## confidence intervals
+#   regression_coef <- tidy(regression_mod, conf.int = TRUE,
+#                           conf.level = 0.95) %>%
+#     ## Remove HeatRisk from terms and instead make it the column title
+#     mutate(term = gsub("^HeatRisk", "", term)) %>%
+#     rename(HeatRisk = term) %>%
+#     ## Set order of HeatRisk for plotting
+#     mutate(HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme"))) %>%
+#     rename(Estimate = estimate) %>%
+#     mutate(across(c(Estimate, std.error, conf.low, conf.high), \(x) signif(x, digits = 4)))
+#   
+#   return(regression_coef)
+# }
+
 ################################################################################
 
 FormatCoefficientTable <- function(data, heat_coefficients, current_outcome){
   
+  
   daily_outcome_column_name <- as.name(glue("Daily change in {current_outcome}"))
   total_outcome_column_name <- as.name(glue("Total change in {current_outcome}"))
+  current_outcome_name <- as.name(current_outcome)
+  
   
   num_days <- data %>%
+    filter(!is.na(!!current_outcome_name)) %>%
     group_by(HeatRisk) %>%
     count() %>%
     filter(HeatRisk %in% c("Moderate", "Major", "Extreme")) %>%
