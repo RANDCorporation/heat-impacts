@@ -8,7 +8,7 @@ remove(list = objects())
 ## Source library
 source("./tool_library.R")
 
-
+profvis::profvis({
 start_date <- ymd("2010-01-01")
 end_date <- NULL
 weeks_of_controls <- 3
@@ -79,3 +79,4 @@ PlotCoef(
     plot_var = plot_var
   )
 
+})
