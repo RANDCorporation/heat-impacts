@@ -8,11 +8,11 @@ remove(list = objects())
 ## Source library
 source("./tool_library.R")
 
-profvis::profvis({
 start_date <- ymd("2010-01-01")
 end_date <- NULL
 weeks_of_controls <- 3
 exclude_holidays <- FALSE
+combine_reference <- TRUE
 
 control_days <- seq(from = 7, to = 7 * weeks_of_controls, by = 7)
 
@@ -51,7 +51,6 @@ data <- GetControlObservations(
 #   outcome_var = current_outcome
 # )
 
-
 data <- FilterDate(
   data = data,
   start_date = start_date,
@@ -60,7 +59,8 @@ data <- FilterDate(
 
 heat_coefficients <- GetHeatCoefficients(data = data,
                                          current_outcome = current_outcome,
-                                         other_outcomes = other_outcomes)
+                                         other_outcomes = other_outcomes,
+                                         combine_reference = TRUE)
   
 coefficient_table <- FormatCoefficientTable(data = data, 
                                             heat_coefficients = heat_coefficients, 
@@ -78,5 +78,3 @@ PlotCoef(
     outcome_var = current_outcome,
     plot_var = plot_var
   )
-
-})

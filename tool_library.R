@@ -1,6 +1,6 @@
 ## Import Packages
-library(cowplot)
 library(tis)
+library(cowplot)
 library(DT)
 library(plotly)
 library(ggplot2)
@@ -20,7 +20,8 @@ plot_var$heatrisk_colors <- c("None" = "palegreen3",
                               "Minor" = "darkgoldenrod2",
                               "Moderate" = "darkorange2",
                               "Major" = "red1",
-                              "Extreme" = "purple4")
+                              "Extreme" = "purple4",
+                              "None or Minor" = "yellowgreen")
 
 ################################################################################
 
@@ -29,20 +30,20 @@ FormatData <- function(data){
   data <- data %>%
     ## Rename HeatRisk so we can make a labels column
     rename(HeatRisk_num = HeatRisk) %>%
-    ## Label the HeatRisk
-    mutate(
-      HeatRisk = case_match(HeatRisk_num,
-                            0 ~ "None",
-                            1 ~ "Minor",
-                            2 ~ "Moderate",
-                            3 ~ "Major",
-                            4 ~ "Extreme",
-                            .default = NA
-      ),
-      ## Change to factor for plotting order
-      HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme")),
-      ## Make sure data is formatted correctly
-      Date = mdy(Date)) %>%
+      ## Label the HeatRisk
+      mutate(
+        HeatRisk = case_match(HeatRisk_num,
+                              0 ~ "None",
+                              1 ~ "Minor",
+                              2 ~ "Moderate",
+                              3 ~ "Major",
+                              4 ~ "Extreme",
+                              .default = NA
+        ),
+        ## Change to factor for plotting order
+        HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme")),
+        ## Make sure data is formatted correctly
+        Date = mdy(Date)) %>%
     ## Make sure that all dates exist in data
     complete(Date = seq.Date(min(Date), max(Date), by = "day")) %>%
     arrange(Date)
@@ -108,10 +109,18 @@ FilterDate <- function(data, start_date = NULL, end_date = NULL){
 
 ################################################################################
 
-GetHeatCoefficients <- function(data, current_outcome, other_outcomes){
+GetHeatCoefficients <- function(data, current_outcome, other_outcomes,
+                                combine_reference = FALSE){
   
   current_outcome_name <- as.name(current_outcome)
   
+  if(combine_reference){
+    data <- data %>%
+      mutate(HeatRisk = as.character(HeatRisk),
+             HeatRisk = ifelse(HeatRisk %in% c("None", "Minor"), "None or Minor", HeatRisk),
+             HeatRisk = factor(HeatRisk, levels = c("None or Minor", "Moderate", "Major", "Extreme")))
+  }
+
   data <- data %>%
     ## Remove other outcomes so we can pivot
     select(-all_of(other_outcomes)) %>%
@@ -127,9 +136,6 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes){
     ## Remove controls with no observation
     filter(!is.na(value),
            !is.na(HeatRisk),
-           
-           ## Optionally remove the none and moderate heatrisk observations
-           #HeatRisk_num > 1
     ) %>%
     ## Calculate day_ids, by first splitting the control name
     separate_wider_delim(name, 
@@ -159,11 +165,20 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes){
                           conf.level = 0.95) %>%
     ## Remove HeatRisk from terms and instead make it the column title
     mutate(term = gsub("^HeatRisk", "", term)) %>%
-    rename(HeatRisk = term) %>%
-    ## Set order of HeatRisk for plotting
-    mutate(HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme"))) %>%
-    rename(Estimate = estimate) %>%
+    rename(HeatRisk = term,
+           Estimate = estimate) %>%
     mutate(across(c(Estimate, std.error, conf.low, conf.high), \(x) signif(x, digits = 4)))
+    
+  if(combine_reference){
+    regression_coef <- regression_coef %>%
+      ## Set order of HeatRisk for plotting
+      mutate(HeatRisk = factor(HeatRisk, levels = c("None or Minor", "Moderate", "Major", "Extreme")))
+  } else {
+    regression_coef <- regression_coef %>%
+      ## Set order of HeatRisk for plotting
+      mutate(HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme")))
+  }
+
   
   return(regression_coef)
 }
@@ -175,25 +190,28 @@ FormatCoefficientTable <- function(data, heat_coefficients, current_outcome){
   
   daily_outcome_column_name <- as.name(glue("Daily change in {current_outcome}"))
   total_outcome_column_name <- as.name(glue("Total change in {current_outcome}"))
+  median_outcome_column_name <- as.name(glue("Median {current_outcome}\n(IQR)"))
   current_outcome_name <- as.name(current_outcome)
   
-  
-  num_days <- data %>%
+  hr_stats <- data %>%
     filter(!is.na(!!current_outcome_name)) %>%
     group_by(HeatRisk) %>%
-    count() %>%
-    filter(HeatRisk %in% c("Moderate", "Major", "Extreme")) %>%
-    rename(days = n)
+    summarize(days := n(), 
+              median := median(!!current_outcome_name, na.rm = TRUE),
+              iqr := IQR(!!current_outcome_name, na.rm = TRUE)) %>%
+    filter(HeatRisk %in% c("Moderate", "Major", "Extreme"))
   
   coefficient_table <- heat_coefficients %>%
-    inner_join(num_days, by = "HeatRisk") %>%
-    mutate(!!daily_outcome_column_name := glue("{Estimate}</br>
+    inner_join(hr_stats, by = "HeatRisk") %>%
+    mutate(!!median_outcome_column_name := glue("{median}</br>
+                                               ({iqr})"),
+           !!daily_outcome_column_name := glue("{Estimate}</br>
                                                [{conf.low}, {conf.high}]"),
            !!total_outcome_column_name := glue("{signif(Estimate * days, digits = 4)}</br>
                                                [{signif(conf.low * days, digits = 4)}, {signif(conf.high * days, digits = 4)}]")) %>%
     rename(`Observed days` = days) %>%
-    select(HeatRisk, !!daily_outcome_column_name,
-           `Observed days`, !!total_outcome_column_name)
+    select(HeatRisk, `Observed days`, !!median_outcome_column_name, !!daily_outcome_column_name,
+            !!total_outcome_column_name)
   
 }
 

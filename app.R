@@ -110,13 +110,46 @@ server <- function(input, output, session) {
       select = outcome_names()[1]
     )
 
-    ########## Set the selection options to the outcomes, and select the first
+    ########## Update dates
+    updateDateRangeInput(session, "date_fields",
+                         min = min(base_data()$Date),
+                         max = max(base_data()$Date),
+                         start = min(base_data()$Date),
+                         end = max(base_data()$Date))
+    
     updateSliderInput(session, "filter_dates",
       min = min(base_data()$Date),
       max = max(base_data()$Date),
       value = c(min(base_data()$Date), max(base_data()$Date))
     )
+    
   }) %>% bindEvent(input$data_file)
+  
+  ## When new dates are entered into the date fields, update the slider
+  observe({
+
+
+    ########## Set the selection options to the outcomes, and select the first
+    updateSliderInput(session, "filter_dates",
+                      min = min(base_data()$Date),
+                      max = max(base_data()$Date),
+                      value = c(input$date_fields[1], input$date_fields[2])
+                      )
+  }) %>% bindEvent(input$date_fields)
+  
+  ## When new dates are entered into the slider, update the date fields
+  observe({
+    
+    
+    ########## Set the selection options to the outcomes, and select the first
+    updateDateRangeInput(session, "date_fields",
+                      min = min(base_data()$Date),
+                      max = max(base_data()$Date),
+                      start = input$filter_dates[1],
+                      end = input$filter_dates[2]
+    )
+    
+  }) %>% bindEvent(input$filter_dates)
 
   
   ################### Update current data based on controls, outcome, and dates
@@ -149,7 +182,9 @@ server <- function(input, output, session) {
   heat_coefficients <- reactive({
     GetHeatCoefficients(data = current_data(),
                         current_outcome = input$current_outcome,
-                        other_outcomes = other_outcomes())
+                        combine_reference = input$combine_reference,
+                        other_outcomes = other_outcomes()
+                        )
   })
 
   ################### Create tables and plots based on current data
@@ -219,7 +254,7 @@ server <- function(input, output, session) {
                                 "HeatRisk" = c("0", "2", "...", "1"),
                                 "EMS Calls" = c("834", "775", "...", "903"),
                                 "Mental Health Crises" = c("79", "106", "...", "66"),
-                                "Coronor Deaths" = c("36", "21", "...", "42"), 
+                                "Medical Examiner Deaths" = c("36", "21", "...", "42"), 
                                 check.names = FALSE)
       
       return(example_table)
@@ -247,8 +282,15 @@ server <- function(input, output, session) {
         ),
         
         ########## Dates, default values are placeholders
+        dateRangeInput("date_fields", 
+                       "Dates",
+                       start = as.Date("2000-01-01", "%Y-%m-%d"),
+                       end = as.Date("2001-01-01", "%Y-%m-%d"),
+                       format = "yyyy-m-d"
+                       ),
+
         sliderInput("filter_dates",
-          "Date range",
+          label = NULL,
           min = as.Date("2000-01-01", "%Y-%m-%d"),
           max = as.Date("2001-01-01", "%Y-%m-%d"),
           value = c(
@@ -263,6 +305,13 @@ server <- function(input, output, session) {
           "Number of weekly lagging and leading controls",
           choices = 1:6,
           selected = 3
+        ),
+        
+        ########## Reference group
+        strong("Reference group"),
+        checkboxInput("combine_reference",
+                      "Combine None and Minor categories",
+                      value = FALSE
         ),
         
         ########## Exclude holidays
