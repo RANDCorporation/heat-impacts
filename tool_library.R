@@ -62,6 +62,16 @@ HolidaysToNA <- function(data, holiday_dates){
 
 ################################################################################
 
+WeekendsToNA <- function(data){
+  data <- data %>%
+    ## Exclude HeatRisk so we don't mess with factor levels, 
+    ## otherwise write columns to NA if on a Saturday or Sunday
+    mutate(across(c(-Date, -HeatRisk), 
+                  ~ifelse(wday(Date, label = TRUE, abbr = TRUE) %in% c("Sat", "Sun"), NA, .)))
+}
+
+################################################################################
+
 GetControlObservations <- function(data, control_days, outcome_var){
   
   ## Create lead and lag control for each control day
@@ -129,8 +139,6 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes,
     ## Remove treated days with no value, or days where there are no matched controls
     filter(!is.na(diff_mean),
            !is.na(!!current_outcome_name)) %>%
-    ## Remove the control mean and original value, since it's no longer needed
-    select(-diff_mean, -!!current_outcome_name) %>%
     ## Pivot so each row is a control or treatment observation
     pivot_longer(starts_with(".diff#_#")) %>%
     ## Remove controls with no observation
@@ -179,6 +187,22 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes,
       mutate(HeatRisk = factor(HeatRisk, levels = c("None", "Minor", "Moderate", "Major", "Extreme")))
   }
 
+  ## Report percentage change
+  percentage_change <- data %>%
+    ## denominator is the control observation
+    mutate(control_obs := !!current_outcome_name - value) %>%
+    ## Caluclate weighted average of difference and control observation
+    group_by(HeatRisk) %>%
+    summarize(mean_denom := sum(control_obs * weight)/sum(weight),
+              mean_diff = sum(value * weight)/sum(weight)) %>%
+    ## Percentage change is one divided by the other over the entire dataset
+    ## This is more robust to small numbers
+    mutate(percent_change = mean_diff / mean_denom) %>%
+    select(HeatRisk, percent_change)
+  
+  regression_coef <- regression_coef %>%
+    left_join(percentage_change, by = "HeatRisk")
+ 
   
   return(regression_coef)
 }
@@ -208,11 +232,13 @@ FormatCoefficientTable <- function(data, heat_coefficients, current_outcome){
            !!daily_outcome_column_name := glue("{Estimate}</br>
                                                [{conf.low}, {conf.high}]"),
            !!total_outcome_column_name := glue("{signif(Estimate * days, digits = 4)}</br>
-                                               [{signif(conf.low * days, digits = 4)}, {signif(conf.high * days, digits = 4)}]")) %>%
+                                               [{signif(conf.low * days, digits = 4)}, {signif(conf.high * days, digits = 4)}]"),
+           `Percent change` = scales::percent(percent_change, accuracy = 0.1)) %>%
     rename(`Observed days` = days) %>%
     select(HeatRisk, `Observed days`, !!median_outcome_column_name, !!daily_outcome_column_name,
-            !!total_outcome_column_name)
+           !!total_outcome_column_name, `Percent change`)
   
+  return(coefficient_table)
 }
 
 ################################################################################

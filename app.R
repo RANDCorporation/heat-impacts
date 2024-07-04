@@ -4,12 +4,27 @@ source("./tool_library.R", local = TRUE)
 ################################################# UI
 
 ui <- fluidPage(
+  
+  ################### Styling
+  tags$head(
+    tags$style(HTML("
+      strong {
+        font-size: 1.25em; /* Adjust the size as needed */
+      }
+      
+      /* Reduce padding around horizontal lines */
+      hr {
+        margin-top: 0px;
+        margin-bottom: 0px;
+      }
+    "))
+  ),
+  
   fluidPage(
 
     ################### Headings
-    title = "HeatRisk in LA County",
-    h2("PROTYPE TOOL - FOR INTERNAL USE ONLY"),
-    h3("Data you upload is hosted, but not saved, on shinyapps.io"),
+    title = "Heat Impacts",
+    h2("Estimating Heat Impacts"),
     h3( tags$a(href="https://docs.posit.co/shinyapps.io/security-and-compliance.html", 
                "Shinyapps security and compliance policy")),
 
@@ -29,8 +44,9 @@ ui <- fluidPage(
           column(
             12,
             ########## File input
-            h3("Upload dataset"),
-            fileInput("data_file", "Choose CSV File",
+            strong("Upload CSV dataset"),
+            fileInput("data_file", 
+                      label = NULL,
               multiple = FALSE,
               accept = c(
                 "text/csv",
@@ -91,15 +107,21 @@ server <- function(input, output, session) {
     )
   })
   
-  holiday_data <- reactive({
+  exclusion_data <- reactive({
+    
+    exclusion_data <- base_data()
+    
     if(input$holiday_exclude){
-      holiday_data <- HolidaysToNA(data = base_data(), 
+      exclusion_data <- HolidaysToNA(data = exclusion_data, 
                                     holiday_dates = holiday_dates())
       
-      return(holiday_data)
     }
     
-    return(base_data())
+    if(input$weekend_exclude){
+      exclusion_data <- WeekendsToNA(data = exclusion_data)
+    }
+    
+    return(exclusion_data)
   })
 
   ################### Upon new data, update buttons  
@@ -164,7 +186,7 @@ server <- function(input, output, session) {
     
     ## Get control observations
     data <- GetControlObservations(
-      data = holiday_data(),
+      data = exclusion_data(),
       control_days = control_days(),
       outcome_var = input$current_outcome
     )
@@ -274,16 +296,17 @@ server <- function(input, output, session) {
       list(
         hr(),
         h3("Data controls"),
-        
+        strong("Outcome"),
         ########## Outcome
         selectInput("current_outcome",
-          "Outcome",
+          label = NULL,
           choices = NULL,
         ),
         
         ########## Dates, default values are placeholders
+        strong("Dates"),
         dateRangeInput("date_fields", 
-                       "Dates",
+                       label = NULL,
                        start = as.Date("2000-01-01", "%Y-%m-%d"),
                        end = as.Date("2001-01-01", "%Y-%m-%d"),
                        format = "yyyy-m-d"
@@ -301,8 +324,9 @@ server <- function(input, output, session) {
         ),
         
         ########## Weeks of controls
+        strong("Number of weekly lagging and leading controls"),
         selectInput("weeks_of_controls",
-          "Number of weekly lagging and leading controls",
+          label = NULL,
           choices = 1:6,
           selected = 3
         ),
@@ -315,9 +339,12 @@ server <- function(input, output, session) {
         ),
         
         ########## Exclude holidays
-        strong("Holidays"),
+        strong("Exclusions"),
         checkboxInput("holiday_exclude",
                       "Exclude federal holidays from calculations",
+                      value = FALSE),
+        checkboxInput("weekend_exclude",
+                      "Exclude weekends from calculations",
                       value = FALSE)
       )
     )
@@ -364,23 +391,42 @@ server <- function(input, output, session) {
         hr(),
         fixedRow(
           column(
-            5,
-            h2("Results"),
+            6,
+            div(style = "display: flex; justify-content: space-between; align-items: center;",
+                h2("Results"),
+                downloadButton("download_results", "Download results table")
+            ),
             tableOutput("coefficient_table")
           ),
           
           ## Coefficient plot
           column(
-            7,
+            6,
             # Output: Data file ----
             plotlyOutput("coef_plot",
-              height = "400px"
+              height = "380px"
             )
           )
         )
       )
     )
   })
+  
+  
+  output$download_results <- downloadHandler(
+    filename = function() {
+      paste("heatrisk_results_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      
+      ## Clean the HTML line breaks
+      cleaned_table <- coefficient_table() %>%
+        mutate(across(everything(), ~ gsub("</?br\\s*/?>", "", .))) 
+      
+      write.csv(cleaned_table, file, row.names = FALSE) 
+    }
+  )
+  
 }
 
 ################################################# Run app
