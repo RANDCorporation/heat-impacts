@@ -1,5 +1,7 @@
 ## Get functions and packages from tool library
 source("./tool_library.R", local = TRUE)
+## Get blocks of text from tool text file
+source("./tool_text.R", local = TRUE)
 
 ################################################# UI
 
@@ -16,6 +18,11 @@ ui <- fluidPage(
       hr {
         margin-top: 0px;
         margin-bottom: 0px;
+      }
+      
+      /* Reduce lower margins around headings */
+      .reduce-margin {
+            margin-bottom: 0px;
       }
     "))
   ),
@@ -62,7 +69,18 @@ ui <- fluidPage(
       ),
       
       ################### Main panel
-      mainPanel(uiOutput("main_panel"))
+      mainPanel(
+        tabsetPanel(
+          tabPanel("App",
+                   uiOutput("main_panel")),
+          tabPanel("How does this work?",
+                   tool_text$goal,
+                   tool_text$data,
+                   tool_text$methods,
+                   tool_text$specification_options,
+                   tool_text$license_attribution)
+          )
+        )
     )
   )
 )
@@ -76,6 +94,7 @@ server <- function(input, output, session) {
   
   ## Try reading in file, and return a safe error if it's incorrect
   base_data <- reactive({
+    req(input$data_file)
     tryCatch(
       {
         base_data <- read.csv(input$data_file$datapath, check.names = FALSE)
@@ -95,20 +114,23 @@ server <- function(input, output, session) {
   
   ########## Get outcome names
   outcome_names <- reactive({
+    req(input$data_file)
     colnames(base_data()[!(colnames(base_data()) %in% c("Date", "HeatRisk", "HeatRisk_num"))])
   })
   other_outcomes <- reactive({
+    req(input$data_file)
     setdiff(outcome_names(), input$current_outcome)
   })
   
   holiday_dates <- reactive({
+    req(input$data_file)
     ymd(federalHolidays(years = year(min(base_data()$Date)):year(max(base_data()$Date)),
     businessOnly = FALSE)
     )
   })
   
   exclusion_data <- reactive({
-    
+    req(input$data_file)
     exclusion_data <- base_data()
     
     if(input$holiday_exclude){
@@ -123,9 +145,27 @@ server <- function(input, output, session) {
     
     return(exclusion_data)
   })
+  
+  current_outcome_dates <- reactive({
+    req(input$data_file, input$current_outcome)
+    
+    ## Find the minimum and maximum date based on this outcome
+    current_outcome_dates <- base_data() %>%
+      select(Date, all_of(input$current_outcome)) %>%
+      filter(!is.na(!!sym(input$current_outcome)))
+    
+    current_outcome_dates <- list(
+      min =  min(current_outcome_dates$Date, na.rm = TRUE),
+      max =  max(current_outcome_dates$Date, na.rm = TRUE)
+    )
+    
+    return(current_outcome_dates)
+  })
 
   ################### Upon new data, update buttons  
   observe({
+    ## Stops error when file is reuploaded
+    freezeReactiveValue(input, "current_outcome")
     ########## Set the selection options to the outcomes, and select the first
     updateSelectInput(session, "current_outcome",
       choices = outcome_names(),
@@ -147,14 +187,33 @@ server <- function(input, output, session) {
     
   }) %>% bindEvent(input$data_file)
   
+  ########## Update dates
+  observe({
+    ## Ensures that dates are only changed once, avoiding stuttering
+    freezeReactiveValue(input, "date_fields")
+    freezeReactiveValue(input, "filter_dates")
+    updateDateRangeInput(session, "date_fields",
+                         min = current_outcome_dates()$min,
+                         max = current_outcome_dates()$max,
+                         start = current_outcome_dates()$min,
+                         end = current_outcome_dates()$max)
+    
+    # ########## Set the selection options to the outcomes, and select the first
+    # updateSliderInput(session, "filter_dates",
+    #                   min = current_outcome_dates()$min,
+    #                   max = current_outcome_dates()$max,
+    #                   value = c(current_outcome_dates()$min, current_outcome_dates()$max)
+    # )
+    
+  }) %>% bindEvent(current_outcome_dates())
+  
   ## When new dates are entered into the date fields, update the slider
   observe({
 
-
     ########## Set the selection options to the outcomes, and select the first
     updateSliderInput(session, "filter_dates",
-                      min = min(base_data()$Date),
-                      max = max(base_data()$Date),
+                      min = current_outcome_dates()$min,
+                      max = current_outcome_dates()$max,
                       value = c(input$date_fields[1], input$date_fields[2])
                       )
   }) %>% bindEvent(input$date_fields)
@@ -162,13 +221,12 @@ server <- function(input, output, session) {
   ## When new dates are entered into the slider, update the date fields
   observe({
     
-    
     ########## Set the selection options to the outcomes, and select the first
     updateDateRangeInput(session, "date_fields",
-                      min = min(base_data()$Date),
-                      max = max(base_data()$Date),
-                      start = input$filter_dates[1],
-                      end = input$filter_dates[2]
+                         min = current_outcome_dates()$min,
+                         max = current_outcome_dates()$max,
+                         start = input$filter_dates[1],
+                         end = input$filter_dates[2]
     )
     
   }) %>% bindEvent(input$filter_dates)
@@ -271,14 +329,9 @@ server <- function(input, output, session) {
 
   ########## Example table
   output$example_table <- renderTable({
-    
-    example_table <- data.frame("Date" = c("1/1/2015", "1/2/2015", "...", "12/31/2023"),
-                                "HeatRisk" = c("0", "2", "...", "1"),
-                                "EMS Calls" = c("834", "775", "...", "903"),
-                                "Mental Health Crises" = c("79", "106", "...", "66"),
-                                "Medical Examiner Deaths" = c("36", "21", "...", "42"), 
-                                check.names = FALSE)
       
+    example_table <- tool_text$example_table
+  
       return(example_table)
     })
 
@@ -295,7 +348,7 @@ server <- function(input, output, session) {
     return(
       list(
         hr(),
-        h3("Data controls"),
+        h3("Specification Options"),
         strong("Outcome"),
         ########## Outcome
         selectInput("current_outcome",
@@ -331,13 +384,6 @@ server <- function(input, output, session) {
           selected = 3
         ),
         
-        ########## Reference group
-        strong("Reference group"),
-        checkboxInput("combine_reference",
-                      "Combine None and Minor categories",
-                      value = FALSE
-        ),
-        
         ########## Exclude holidays
         strong("Exclusions"),
         checkboxInput("holiday_exclude",
@@ -345,7 +391,14 @@ server <- function(input, output, session) {
                       value = FALSE),
         checkboxInput("weekend_exclude",
                       "Exclude weekends from calculations",
-                      value = FALSE)
+                      value = FALSE),
+        
+        ########## Reference group
+        strong("Reference group"),
+        checkboxInput("combine_reference",
+                      "Combine None and Minor categories",
+                      value = FALSE
+        )
       )
     )
   })
@@ -357,16 +410,8 @@ server <- function(input, output, session) {
     if (is.null(input$data_file)) {
       return(
         list(
-         h2("File upload format"),
-         p("This is some placeholder text"),
-         p("The file you upload should be a .CSV with the first two columns called 
-         'Date' and 'HeatRisk', subsequent columns should contain numeric outcome counts."),
-         p("The column headings for these outcome columns will be used on figures.
-           You can have as many outcome columns as you like, and you can switch between
-           them. Dates should be in a 'MM/DD/YYYY' format. HeatRisk should be numeric, running
-           from 0 (None) to 4 (Extreme). An example table structure is:"),
-         
-         tableOutput("example_table")
+          tool_text$introduction,
+          tool_text$file_upload_format
         )
       )
     }
@@ -379,7 +424,7 @@ server <- function(input, output, session) {
         fixedRow(
           column(
             12,
-            h2("Timeline"),
+            h2("Timeline", class = "reduce-margin"),
             # Output: Data file ----
             plotlyOutput("timeline_plot",
               height = "320px"

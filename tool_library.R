@@ -189,6 +189,7 @@ GetHeatCoefficients <- function(data, current_outcome, other_outcomes,
 
   ## Report percentage change
   percentage_change <- data %>%
+    group_by(Date) %>%
     ## denominator is the control observation
     mutate(control_obs := !!current_outcome_name - value) %>%
     ## Caluclate weighted average of difference and control observation
