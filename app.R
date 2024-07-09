@@ -32,8 +32,6 @@ ui <- fluidPage(
     ################### Headings
     title = "Heat Impacts",
     h2("Estimating Heat Impacts"),
-    h3( tags$a(href="https://docs.posit.co/shinyapps.io/security-and-compliance.html", 
-               "Shinyapps security and compliance policy")),
 
     ################### Side-bar
     sidebarLayout(
