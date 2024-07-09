@@ -201,6 +201,7 @@ server <- function(input, output, session) {
 
   ## When new dates are entered into the slider, update the date fields
   observe({
+    freezeReactiveValue(input, "date_fields")
     ########## Set the selection options to the outcomes, and select the first
     updateDateRangeInput(session, "date_fields",
       min = current_outcome_dates()$min,
@@ -375,7 +376,7 @@ server <- function(input, output, session) {
         strong("Reference group"),
         checkboxInput("combine_reference",
           "Combine None and Minor categories",
-          value = FALSE
+          value = TRUE
         )
       )
     )
