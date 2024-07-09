@@ -125,8 +125,8 @@ tool_text$specification_options <- list(
   h3("Dates"),
   p("Limit the date range of the analysis. This is useful when analyzing a specific period,
     such as identifying the impact of a single heatwave. The default date range is set to
-    the maximum and minimum valid dates for the currently selected outcome. Dates can be
-    modified either by entering data into the two date fields or by dragging the slider.
+    the maximum and minimum valid dates for the currently selected outcome. Dates are
+    modified either by entering data into the two date fields.
     Care should be taken when using narrow date ranges, as this will limit sample sizes,
     especially for the highest levels of HeatRisk. Point estimates and estimates of
     uncertainty are less accurate and robust with small sample sizes."),
