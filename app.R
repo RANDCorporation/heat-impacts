@@ -163,6 +163,19 @@ server <- function(input, output, session) {
 
     return(current_outcome_dates)
   })
+  
+  ## Intermediate variable that we can debounce 
+  current_dates <- reactive({
+    req(input$data_file, input$current_outcome, input$filter_dates)
+    
+    current_dates <- list(
+      start =  input$filter_dates[1],
+      end =  input$filter_dates[2]
+    )
+    
+    return(current_dates)
+  }) %>% debounce(3000)
+
 
   ################### Upon new data, update buttons
   observe({
@@ -188,9 +201,10 @@ server <- function(input, output, session) {
       end = current_outcome_dates()$max
     )
   }) %>% bindEvent(current_outcome_dates())
-
+  
   ## When new dates are entered into the date fields, update the slider
   observe({
+    #freezeReactiveValue(input, "filter_dates")
     ########## Set the selection options to the outcomes, and select the first
     updateSliderInput(session, "filter_dates",
       min = current_outcome_dates()$min,
@@ -201,15 +215,15 @@ server <- function(input, output, session) {
 
   ## When new dates are entered into the slider, update the date fields
   observe({
-    freezeReactiveValue(input, "date_fields")
+    #freezeReactiveValue(input, "date_fields")
     ########## Set the selection options to the outcomes, and select the first
     updateDateRangeInput(session, "date_fields",
       min = current_outcome_dates()$min,
       max = current_outcome_dates()$max,
-      start = input$filter_dates[1],
-      end = input$filter_dates[2]
+      start = current_dates()$start,
+      end = current_dates()$end
     )
-  }) %>% bindEvent(input$filter_dates)
+  }) %>% bindEvent(current_dates(), ignoreInit = TRUE)
 
 
   ################### Update current data based on controls, outcome, and dates
@@ -235,7 +249,7 @@ server <- function(input, output, session) {
       end_date = input$filter_dates[2]
     )
     return(data)
-  })
+  }) %>% throttle(1500)
 
   ########## Fit models and get coefficients
   heat_coefficients <- reactive({
