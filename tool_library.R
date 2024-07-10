@@ -1,6 +1,5 @@
 ## Import Packages
 library(tis)
-library(cowplot)
 library(DT)
 library(plotly)
 library(ggplot2)
@@ -266,6 +265,50 @@ FormatCoefficientTable <- function(data, heat_coefficients, current_outcome) {
 
 ################################################################################
 
+CustomToolTheme <- function() {
+  theme_grey(base_size = 14, base_family = "") %+replace%
+    theme(
+      text = element_text(
+        family = "", face = "plain",
+        color = "black", size = 14, hjust = 0.5,
+        vjust = 0.5, angle = 0, lineheight = 0.9, margin = margin(),
+        debug = FALSE
+      ),
+      axis.line = element_line(
+        color = "black",
+        linewidth = 0.5, lineend = "square"
+      ),
+      axis.text = element_text(
+        color = "black",
+        size = 12.5
+      ),
+      axis.ticks = element_line(
+        color = "black",
+        linewidth = 0.3
+      ),
+      axis.ticks.length = unit(3, "pt"),
+      legend.background = element_blank(),
+      legend.spacing = unit(14, "pt"), legend.margin = margin(
+        0, 0, 0, 0
+      ),
+      legend.key = element_blank(), legend.key.size = unit(16, "pt"),
+      legend.text = element_text(size = rel(6 / 7)),
+      legend.justification = c(
+        "left",
+        "center"
+      ),
+      legend.box.margin = margin(
+        0, 0, 0, 0
+      ),
+      legend.box.background = element_blank(),
+      legend.box.spacing = unit(14, "pt"), panel.background = element_blank(),
+      complete = TRUE
+    )
+}
+
+
+################################################################################
+
 PlotTimeline <- function(data,
                          outcome_var,
                          plot_var) {
@@ -290,7 +333,7 @@ PlotTimeline <- function(data,
       values = plot_var$heatrisk_colors
     ) +
     ## Theme
-    theme_cowplot()
+    CustomToolTheme()
 
   ## Covert to plotly plot
   timeseries_fig <- ggplotly(timeseries_fig) %>%
@@ -330,7 +373,7 @@ PlotCoef <- function(regression_coef,
       values = plot_var$heatrisk_colors
     ) +
     ## Theme and remove legend
-    theme_cowplot() +
+    CustomToolTheme() +
     theme(legend.position = "none")
 
   ## Convert to plotly plot

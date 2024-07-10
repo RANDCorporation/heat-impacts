@@ -2,8 +2,6 @@
 
 ## Get packages from tool library
 source("./tool_library.R", local = TRUE)
-## Attach packrat for finding licenses
-library(packrat)
 
 ## Find attached packages
 attached_packages <- (.packages())
@@ -19,18 +17,18 @@ ListLicenses = function(packages) {
     
     # Originally used, but only works for CRAN packages:
     license_info = packageDescription(package_name, fields="License")   
-    print(glue::glue("{package_name}: {license_info}"))   
-    print("1st Order Dependencies:")
-    for (dependency in unlist(first_order_dependencies)) {
-      dependency_license_info = packageDescription(dependency, fields="License")
-      print(glue::glue("\t{dependency}: {dependency_license_info}"))
-    }
-
-    print("2-Nth Order Dependencies:")
-    for (dependency in unlist(nth_order_dependencies)) {
-      dependency_license_info = packageDescription(dependency, fields="License")
-      print(glue::glue("\t{dependency}: {dependency_license_info}"))
-    }
+    print(glue::glue("{package_name}: {license_info}"))
+    # print("1st Order Dependencies:")
+    # for (dependency in unlist(first_order_dependencies)) {
+    #   dependency_license_info = packageDescription(dependency, fields="License")
+    #   print(glue::glue("\t{dependency}: {dependency_license_info}"))
+    # }
+    # 
+    # print("2-Nth Order Dependencies:")
+    # for (dependency in unlist(nth_order_dependencies)) {
+    #   dependency_license_info = packageDescription(dependency, fields="License")
+    #   print(glue::glue("\t{dependency}: {dependency_license_info}"))
+    # }
   }
 }
 
