@@ -21,7 +21,8 @@ plot_var$heatrisk_colors <- c(
   "Moderate" = "darkorange2",
   "Major" = "red1",
   "Extreme" = "purple4",
-  "None or Minor" = "yellowgreen"
+  "None or Minor" = "yellowgreen",
+  "None or\nMinor" = "yellowgreen"
 )
 
 ################################################################################
@@ -280,7 +281,7 @@ CustomToolTheme <- function() {
       ),
       axis.text = element_text(
         color = "black",
-        size = 12.5
+        size = 11
       ),
       axis.ticks = element_line(
         color = "black",
@@ -354,7 +355,16 @@ PlotCoef <- function(regression_coef,
                      outcome_var,
                      plot_var) {
   #### Create plot
-  estimates_fig <- regression_coef %>%
+  if("None or Minor" %in% unique(regression_coef$HeatRisk)){
+    estimates_fig <- regression_coef %>%
+      mutate(HeatRisk = as.character(HeatRisk),
+             HeatRisk = ifelse(HeatRisk == "None or Minor", "None or\nMinor", HeatRisk),
+             HeatRisk = factor(HeatRisk, levels = c("None or\nMinor", "Moderate", "Major", "Extreme")))
+  } else {
+    estimates_fig <- regression_coef
+  }
+
+  estimates_fig <- estimates_fig %>%
     ggplot(aes(x = HeatRisk, y = Estimate, color = HeatRisk, group = HeatRisk)) +
     ## Add points
     geom_point(size = 1.5) +

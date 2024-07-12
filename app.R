@@ -24,6 +24,11 @@ ui <- fluidPage(
       .reduce-margin {
             margin-bottom: 0px;
       }
+      
+      /* Create div options for a scrollable table if cut off */
+      .scrollable-table {
+        overflow-x: auto;
+        width: 100%;
     "))
   ),
   fluidPage(
@@ -272,7 +277,7 @@ server <- function(input, output, session) {
   })
 
   ########## Output coefficient table
-  output$coefficient_table <- renderTable(
+ output$coefficient_table <- renderTable(
     {
       ## Only run if there is input data
       req(input$data_file)
@@ -280,9 +285,10 @@ server <- function(input, output, session) {
       return(coefficient_table())
     },
     ## Makes sure linebreaks are not removed
-    sanitize.text.function = identity
+    sanitize.text.function = identity,
+    width = "100%"
   )
-
+ 
   ########## Example table
   output$example_table <- renderTable({
     example_table <- tool_text$example_table
@@ -386,7 +392,7 @@ server <- function(input, output, session) {
               h2("Results"),
               downloadButton("download_results", "Download results table")
             ),
-            tableOutput("coefficient_table")
+            div(class = "scrollable-table", tableOutput("coefficient_table"))
           ),
 
           ## Coefficient plot
