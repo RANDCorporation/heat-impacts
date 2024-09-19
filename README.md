@@ -103,15 +103,12 @@ Copyright (C) 2024 RAND Corporation. This code is made available under the GPL-3
 Lawrence Baker (lbaker@rand.org)
 Roland Sturm (sturm@rand.org)
 
-
-
 You can cite this tool using:
 
 @techreport{bakerHeatImpacts2024,
   title = {{{Estimating}} the {{Impact of Heat}} on {{Public Services}}},
   author = {Baker, Lawrence and Sturm, Roland},
   year = {2024},
-  month = jan,
   institution = {RAND Corporation},
   abstract = {{$<$}p{$>$}This online, interactive tool allows users to estimate how heat impacts their operations and clients. It has a simple GUI, allows departments to upload their own data, and produces plots and results tables. {$<$}/p{$>$}},
   langid = {english}
