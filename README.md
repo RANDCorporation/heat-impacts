@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This app is designed to help local government departments estimate how heat impacts their operations and clients. It has a simple GUI and can be hosted by anyone with access to an R Shiny server. To use the app with their data, simply upload a .csv file.
+This app is designed to help local government departments estimate how heat impacts their operations and clients. It has a simple GUI, allows departments to upload their own data, and produces plots and results tables. It can be hosted by anyone with access to an R Shiny server. To use the app with their data, users simply upload a .csv file.
  
 ## Data
 
@@ -87,6 +87,8 @@ This option specifies whether the "None" and "Minor" HeatRisk categories should 
 
 This tool was developed by Lawrence Baker (lbaker@rand.org) and Roland Sturm as part of the RAND project "Health and Social Services During Heat Events". Funding was provided by the Los Angeles County Chief Sustainability Office through the Los Angeles County Quality and Productivity Commission.
 
+The correponding report, Health and Social Services During Heat Events: Demand for Services in Los Angeles County, can be found [here](https://www.rand.org/pubs/research_reports/RRA3406-1.html)
+
 The matching approach used in this app is based on [a method developed by the California Department of Public Health](https://www.cdph.ca.gov/Programs/OHE/CDPH%20Document%20Library/Climate-Health-Equity/CDPH-2022-Heat-Wave-Excess-Mortality-Report.pdf)
 
 We thank Ali Frazzini, Karen Chang, and Meredith Milet for their feedback on earlier versions of this tool.
@@ -101,4 +103,32 @@ Copyright (C) 2024 RAND Corporation. This code is made available under the GPL-3
 Lawrence Baker (lbaker@rand.org)
 Roland Sturm (sturm@rand.org)
 
-Provide a BiBTeX references appropriate for anyone using this code to cite. 
+
+
+You can cite this tool using:
+
+@techreport{bakerHeatImpacts2024,
+  title = {{{Estimating}} the {{Impact of Heat}} on {{Public Services}}},
+  author = {Baker, Lawrence and Sturm, Roland},
+  year = {2024},
+  month = jan,
+  institution = {RAND Corporation},
+  abstract = {{$<$}p{$>$}This online, interactive tool allows users to estimate how heat impacts their operations and clients. It has a simple GUI, allows departments to upload their own data, and produces plots and results tables. {$<$}/p{$>$}},
+  langid = {english}
+}
+
+The associated RAND report can be cited using:
+
+@techreport{sturmHealthSocialServices2024,
+  title = {Health and {{Social Services During Heat Events}}: {{Demand}} for {{Services}} in {{Los Angeles County}}},
+  shorttitle = {Health and {{Social Services During Heat Events}}},
+  author = {Sturm, Roland and Baker, Lawrence and Krovetz, Avery},
+  year = {2024},
+  month = sep,
+  institution = {RAND Corporation},
+  url = {https://www.rand.org/pubs/research_reports/RRA3406-1.html},
+  abstract = {{$<$}p{$>$}The authors analyze the relationship between heat events in Los Angeles County and (1) emergency medical services, (2) emergency room visits, (3) deaths investigated by the medical examiner, and (4) bookings for violent offenses. Heat events are classified according to the National Weather Service HeatRisk system. Days classified as moderate, major, and severe HeatRisk days are associated with worse results for all these outcomes.{$<$}/p{$>$}},
+  langid = {english},
+  keywords = {Emergency Medical Services,Global Climate Change,Los Angeles,Meteorology and Weather,Students}
+}
+
