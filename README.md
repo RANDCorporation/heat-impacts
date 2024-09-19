@@ -20,18 +20,15 @@ In this example, "EMS Calls", "Mental Health Crises", and "Medical Examiner Deat
 
 A regression results table can optionally be exported in .CSV format.
 
-
-## Usage
-
-### Hosting
+## Hosting
 We encourage the hosting of this application on a public Shiny server to make it more broadly available
 
-### Methods
+## Methods & Usage
 
-#### Overview
+### Overview
 This app compares days with high HeatRisk to days with low HeatRisk using a matching method. The matching only compares days that occur within a few weeks of each other, making this method relatively robust to long-term shifts in data generation, such as population shifts or changes in collection methods. To help explore potential data quality issues, we provide a timeline view of the data, where the y-axis represents the selected outcome, the x-axis shows the date, color indicates the corresponding HeatRisk on that day, and blank spaces signify NA or zero values.
 
-#### Identifying matched control days
+### Identifying matched control days
 For each day in the uploaded time series, the app identifies matched controls as days that meet the following criteria:
 
 - Occur within 3 weeks before or after the target day (this value can be modified using the specification options)
@@ -39,7 +36,7 @@ For each day in the uploaded time series, the app identifies matched controls as
 - Have a HeatRisk level of "None" or "Minor"
 - Due to the last criterion, the number of matched controls can vary for each day, ranging from 0 to 6 (for a three-week window). Days at the start or end of the uploaded time series also have fewer potential matches. Observations for which there are no matches are excluded from the calculation.
 
-#### Estimating Coefficients
+### Estimating Coefficients
 After identifying matched controls, the app assembles a dataset where each row represents a matched observation and control pair. The same observation will appear in multiple rows if it has multiple matched controls. This dataset includes:
 
 - The date of the observation
@@ -55,7 +52,7 @@ No intercept is included so that we obtain an estimate for each level of HeatRis
 
 Note that days with Moderate, Major, and Extreme HeatRisk are often disproportionately likely to have Mild, rather than None, HeatRisk days used as controls. This means that estimates from this matching method tend to be conservative.
 
-#### Results table
+### Results table
 The results table includes statistics for each level of HeatRisk not used as a control. The columns include:
 
 - Observed days: The number of days in the selected date range with that level of HeatRisk.
