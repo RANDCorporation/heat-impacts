@@ -160,7 +160,7 @@ tool_text$license_attribution <- list(
   h2("License"),
   p("The source code for this tool is available under a GPL-3 license."),
   h2("Attribution"),
-  p("This tool was developed by Lawrence Baker and Roland Sturm as part of the
+  p("This tool was developed by Lawrence Baker (lbaker@rand.org) and Roland Sturm as part of the
     RAND project \"Health and Social Services During Heat Events\". Funding was
     provided by the Los Angeles County Chief Sustainability Office through the Los
     Angeles County Quality and Productivity Commission."),
