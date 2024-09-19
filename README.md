@@ -10,11 +10,13 @@ The uploaded file should be in .CSV format. The first two columns must be labele
 
 Subsequent columns should contain numeric outcome counts, with the column headings used to name the outcomes. You can include as many outcome columns as needed, and you can switch between them during the analysis. If any values are missing, the corresponding cells must be left blank. An example table structure is:
 
-Date	| HeatRisk	| EMS Calls | Mental Health Crises | Medical Examiner Deaths
-1/1/2015 | 0 | 838 | 89	
-1/2/2015	| 2	| 776	| 103	
-...	| ... | ... | ... | ...
-12/31/2023	| 1	| 904	| 64 | 41
+
+| Date	| HeatRisk	| EMS Calls | Mental Health Crises | Medical Examiner Deaths
+| ------ | ------ | ------ | ------ | ------ | 
+| 1/1/2015 | 0 | 838 | 89	| |
+| 1/2/2015	| 2	| 776	| 103	| |
+| ...	| ... | ... | ... | ... |
+| 12/31/2023	| 1	| 904	| 64 | 41 |
 
 In this example, "EMS Calls", "Mental Health Crises", and "Medical Examiner Deaths" are the names of the outcome columns, and the numeric values represent the corresponding outcome counts for each date and HeatRisk level. Note the blank cell in the "Medical Examiner Deaths" column, indicating a missing value.
 
