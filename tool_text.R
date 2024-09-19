@@ -3,9 +3,9 @@ tool_text <- list()
 tool_text$example_table <- data.frame(
   "Date" = c("1/1/2015", "1/2/2015", "...", "12/31/2023"),
   "HeatRisk" = c("0", "2", "...", "1"),
-  "EMS Calls" = c("834", "775", "...", "903"),
-  "Mental Health Crises" = c("79", "106", "...", "66"),
-  "Medical Examiner Deaths" = c("", "", "...", "42"),
+  "EMS Calls" = c("838", "776", "...", "904"),
+  "Mental Health Crises" = c("89", "103", "...", "64"),
+  "Medical Examiner Deaths" = c("", "", "...", "41"),
   check.names = FALSE
 )
 
@@ -14,7 +14,7 @@ tool_text$introduction <- list(
   p("This app is designed to help local government departments estimate how heat
     impacts their operations and clients. It uses a matching method, comparing
     hot days with similar cooler days, to estimate how HeatRisk (a heat index developed
-    by the National Weather Service) is associated with outcomes. To use the app,
+    by the National Weather Service) is associated with outcomes. To use the app with your data,
     simply upload a .csv file in the format specified below. For more details on
     the methodology, please refer to the \"How does this work?\" tab.")
 )
@@ -43,7 +43,7 @@ tool_text$goal <- list(
     heat on specific outcomes can be challenging. This tool is designed to help
     departments understand how heat affects their operations, enabling them to
     better plan for a warming climate. Specifically, this tool provides estimates
-    of how outcomes change at each level of the National Weather Service\"s HeatRisk
+    of how outcomes are associated with the National Weather Service\'s HeatRisk
     index, which includes five levels ranging from \"None\" to \"Extreme\".")
 )
 
@@ -51,10 +51,8 @@ tool_text$goal <- list(
 tool_text$data <- list(
   h2("Data"),
   p(HTML("To enable wide and free distribution of this app, we require users to upload their own outcome data.
-  A prototype of this app is hosted on shinyapps.io, where
-  <a href=\"https://docs.posit.co/shinyapps.io/guide/security_and_compliance/index.html\">(data is stored securely)</a>,
-  but future versions could be hosted elsewhere. Before uploading any sensitive data, ensure that you
-  trust the app\"s source. The file upload format is explained on the \"App\" tab.")),
+  Before uploading any sensitive data, ensure that you
+  trust the app\'s source. The file upload format is explained on the \"App\" tab.")),
   p(HTML("Current and future HeatRisk data for local stations can be obtained from the
   <a href=\"https://www.wpc.ncep.noaa.gov/heatrisk/\">National Weather Service</a>
   or <a href=\"https://ephtracking.cdc.gov/DataExplorer/\">National Environmental Public Health Tracking Network</a>.
@@ -67,7 +65,7 @@ tool_text$methods <- list(
   h3("Overview"),
   p("This app compares days with high HeatRisk to days with low HeatRisk using a matching method.
     The matching only compares days that occur within a few weeks of each other, making this
-    method relatively robust to changes in data, such as long-term population shifts or changes
+    method relatively robust to long-term shifts in data generation, such as population shifts or changes
     in collection methods. To help explore potential data quality issues, we provide a timeline
     view of the data, where the y-axis represents the selected outcome, the x-axis shows the date,
     color indicates the corresponding HeatRisk on that day, and blank spaces signify NA or zero values."),

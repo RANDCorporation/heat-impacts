@@ -35,7 +35,7 @@ ui <- fluidPage(
 
     ################### Headings
     title = "Heat Impacts",
-    h2("Estimating Heat Impacts"),
+    h2("Estimating The Impact of Heat on Public Services"),
 
     ################### Side-bar
     sidebarLayout(
@@ -83,6 +83,9 @@ ui <- fluidPage(
             tool_text$data,
             tool_text$methods,
             tool_text$specification_options,
+          ),
+          tabPanel(
+            "License & Attribution",
             tool_text$license_attribution
           )
         )
