@@ -102,6 +102,9 @@ tool_text$methods <- list(
     controls which are used multiple times in different observations). This regression
     approach is fast, explicit in how it aggregates data results, and allows for the
     estimation of standard errors and corresponding confidence intervals."),
+  p("Note that days with Moderate, Major, and Extreme HeatRisk are often disproportionately likely to have Mild, 
+    rather than None, HeatRisk days used as controls. This means that 
+    estimates from this matching method tend to be conservative."),
   h3("Results table"),
   p("The results table includes statistics for each level of HeatRisk not used as a control. The columns include:"),
   tags$ul(
@@ -146,9 +149,11 @@ tool_text$specification_options <- list(
   h3("Reference group"),
   p("This option specifies whether the \"None\" and \"Minor\" HeatRisk categories
     should be combined in the results plot. When combined, the estimate for this
-    group should always be close to zero since it is the composition of the control
-    group. The default behavior is to leave these groups split because it may be
-    useful to understand if there are differences between minor and control days.")
+    group should be close to zero since this is the composition of the control
+    group. The default behavior is to combine these groups, because the matching method
+    method may underestimate the difference between None and Minor HeatRisk if None days are 
+    disproportionately likely to have other None days as controls and Minor days are 
+    disproportionately likely to have other Minor days as controls.")
 )
 
 tool_text$license_attribution <- list(
