@@ -1,0 +1,18 @@
+## Data Files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.Rprofile
+*.Rproj
+
+## Environment
+/renv/library/
+/renv/sandbox/
+/renv/staging/
+/renv/settings.json
+
+## Scripts
+tool_license_check.R
+
+
