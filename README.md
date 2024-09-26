@@ -107,6 +107,7 @@ Roland Sturm (sturm@rand.org)
 
 You can cite this tool using:
 
+```tex
 @techreport{bakerHeatImpacts2024,
   title = {{{Estimating}} the {{Impact of Heat}} on {{Public Services}}},
   author = {Baker, Lawrence and Sturm, Roland},
@@ -115,9 +116,11 @@ You can cite this tool using:
   abstract = {{$<$}p{$>$}This online, interactive tool allows users to estimate how heat impacts their operations and clients. It has a simple GUI, allows departments to upload their own data, and produces plots and results tables. {$<$}/p{$>$}},
   langid = {english}
 }
+```
 
 The associated RAND report can be cited using:
 
+```tex
 @techreport{sturmHealthSocialServices2024,
   title = {Health and {{Social Services During Heat Events}}: {{Demand}} for {{Services}} in {{Los Angeles County}}},
   shorttitle = {Health and {{Social Services During Heat Events}}},
@@ -130,4 +133,4 @@ The associated RAND report can be cited using:
   langid = {english},
   keywords = {Emergency Medical Services,Global Climate Change,Los Angeles,Meteorology and Weather,Students}
 }
-
+```
