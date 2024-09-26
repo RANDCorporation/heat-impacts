@@ -54,6 +54,10 @@ ui <- fluidPage(
             12,
             ########## File input
             strong("Upload CSV dataset"),
+            br(),
+            actionButton("use_example_data", "Use example data", 
+                        style = "margin-top: 10px; margin-bottom: 15px;"),
+            
             fileInput("data_file",
               label = NULL,
               multiple = FALSE,
@@ -98,40 +102,72 @@ ui <- fluidPage(
 ################################################# Server
 
 server <- function(input, output, session) {
-  ################### Reading in data
-
-  ## Try reading in file, and return a safe error if it's incorrect
+  
+  # Reactive value to track whether to use example data
+  use_example_data <- reactiveVal(FALSE)
+  
+  # Set use_example_data to TRUE when the button is pressed
+  observeEvent(input$use_example_data, {
+    use_example_data(TRUE)
+  })
+  
+  # Reset use_example_data to FALSE when a file is uploaded
+  observeEvent(input$data_file, {
+    use_example_data(FALSE)
+  })
+  
+  # Reactive expression to determine which data to use
   base_data <- reactive({
-    req(input$data_file)
-    tryCatch(
-      {
-        base_data <- read.csv(input$data_file$datapath, check.names = FALSE)
-      },
-      error = function(e) {
-        # return a safeError if a parsing error occurs
-        stop(safeError(e))
-      }
-    )
-
+    if (use_example_data()) {
+      # Read the example data file
+      base_data <- read.csv("./data/tool_input_data_example.csv", check.names = FALSE)
+    } else if (!is.null(input$data_file)) {
+      # Read the uploaded data file
+      req(input$data_file)
+      tryCatch(
+        {
+          base_data <- read.csv(input$data_file$datapath, check.names = FALSE)
+        },
+        error = function(e) {
+          # return a safeError if a parsing error occurs
+          stop(safeError(e))
+        }
+      )
+    } else {
+      # No data available
+      return(NULL)
+    }
+    
     ## Apply formatting
     base_data <- FormatData(data = base_data)
-
+    
     return(base_data)
   })
+  
+  ################### Reading in data
 
+  ## Use a reactive value for current_outcome, so that we do not get errors if
+  ## A new file is uploaded with different outcome names.
+  current_outcome <- reactive({
+    req(input$current_outcome)
+    validate(
+      need(input$current_outcome %in% colnames(base_data()), "Selected outcome is not in the data")
+    )
+    input$current_outcome
+  })
 
   ########## Get outcome names
   outcome_names <- reactive({
-    req(input$data_file)
+    req(base_data())
     colnames(base_data()[!(colnames(base_data()) %in% c("Date", "HeatRisk", "HeatRisk_num"))])
   })
   other_outcomes <- reactive({
-    req(input$data_file)
-    setdiff(outcome_names(), input$current_outcome)
+    req(base_data())
+    setdiff(outcome_names(), current_outcome())
   })
 
   holiday_dates <- reactive({
-    req(input$data_file)
+    req(base_data())
     ymd(federalHolidays(
       years = year(min(base_data()$Date)):year(max(base_data()$Date)),
       businessOnly = FALSE
@@ -139,7 +175,7 @@ server <- function(input, output, session) {
   })
 
   exclusion_data <- reactive({
-    req(input$data_file)
+    req(base_data())
     exclusion_data <- base_data()
 
     if (input$holiday_exclude) {
@@ -157,12 +193,12 @@ server <- function(input, output, session) {
   })
 
   current_outcome_dates <- reactive({
-    req(input$data_file, input$current_outcome)
+    req(base_data(), current_outcome())
 
     ## Find the minimum and maximum date based on this outcome
     current_outcome_dates <- base_data() %>%
-      select(Date, all_of(input$current_outcome)) %>%
-      filter(!is.na(!!sym(input$current_outcome)))
+      select(Date, all_of(current_outcome())) %>%
+      filter(!is.na(!!sym(current_outcome())))
 
     current_outcome_dates <- list(
       min =  min(current_outcome_dates$Date, na.rm = TRUE),
@@ -182,7 +218,7 @@ server <- function(input, output, session) {
       select = outcome_names()[1]
     )
 
-  }) %>% bindEvent(input$data_file)
+  }) %>% bindEvent(base_data())
 
   ########## Update dates
   observe({
@@ -209,7 +245,7 @@ server <- function(input, output, session) {
     data <- GetControlObservations(
       data = exclusion_data(),
       control_days = control_days(),
-      outcome_var = input$current_outcome
+      outcome_var = current_outcome()
     )
 
     ## Filter dates
@@ -225,7 +261,7 @@ server <- function(input, output, session) {
   heat_coefficients <- reactive({
     GetHeatCoefficients(
       data = current_data(),
-      current_outcome = input$current_outcome,
+      current_outcome = current_outcome(),
       combine_reference = input$combine_reference,
       other_outcomes = other_outcomes()
     )
@@ -238,7 +274,7 @@ server <- function(input, output, session) {
     FormatCoefficientTable(
       data = current_data(),
       heat_coefficients = heat_coefficients(),
-      current_outcome = input$current_outcome
+      current_outcome = current_outcome()
     )
   })
 
@@ -246,7 +282,7 @@ server <- function(input, output, session) {
   timeline_plot <- reactive({
     PlotTimeline(
       data = current_data(),
-      outcome_var = input$current_outcome,
+      outcome_var = current_outcome(),
       plot_var = plot_var
     )
   })
@@ -255,7 +291,7 @@ server <- function(input, output, session) {
   coef_plot <- reactive({
     PlotCoef(
       regression_coef = heat_coefficients(),
-      outcome_var = input$current_outcome,
+      outcome_var = current_outcome(),
       plot_var = plot_var
     )
   })
@@ -266,7 +302,7 @@ server <- function(input, output, session) {
   ########## Output timeline
   output$timeline_plot <- renderPlotly({
     ## Only run if there is input data
-    req(input$data_file)
+    req(base_data())
 
     return(timeline_plot())
   })
@@ -274,7 +310,7 @@ server <- function(input, output, session) {
   ########## Output coefficient plot
   output$coef_plot <- renderPlotly({
     ## Only run if there is input data
-    req(input$data_file)
+    req(base_data())
 
     return(coef_plot())
   })
@@ -283,7 +319,7 @@ server <- function(input, output, session) {
  output$coefficient_table <- renderTable(
     {
       ## Only run if there is input data
-      req(input$data_file)
+      req(base_data())
 
       return(coefficient_table())
     },
@@ -306,7 +342,7 @@ server <- function(input, output, session) {
   ################### Specify data controls
   output$data_controls <- renderUI({
     ## Only run if there is input data
-    req(input$data_file)
+    req(base_data())
 
     return(
       list(
@@ -360,7 +396,7 @@ server <- function(input, output, session) {
   ################### Main panel before and after data is uploaded
   output$main_panel <- renderUI({
     ########## Before data is uploaded
-    if (is.null(input$data_file)) {
+    if (is.null(base_data())) {
       return(
         list(
           tool_text$introduction,

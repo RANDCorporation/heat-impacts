@@ -16,7 +16,9 @@ tool_text$introduction <- list(
     hot days with similar cooler days, to estimate how HeatRisk (a heat index developed
     by the National Weather Service) is associated with outcomes. To use the app with your data,
     simply upload a .csv file in the format specified below. For more details on
-    the methodology, please refer to the \"How does this work?\" tab.")
+    the methodology, please refer to the \"How does this work?\" tab."),
+    p("An example synthetic dataset can be accessed through the 'Use example data' 
+    button")
 )
 
 
@@ -35,6 +37,7 @@ tool_text$file_upload_format <- list(
   are the names of the outcome columns,
     and the numeric values represent the corresponding outcome counts for each date and
     HeatRisk level. Note the blank cell in the \"Medical Examiner Deaths\" column, indicating a missing value.")
+
 )
 
 tool_text$goal <- list(
@@ -57,8 +60,11 @@ tool_text$data <- list(
   <a href=\"https://www.wpc.ncep.noaa.gov/heatrisk/\">National Weather Service</a>
   or <a href=\"https://ephtracking.cdc.gov/DataExplorer/\">National Environmental Public Health Tracking Network</a>.
     Historical HeatRisk data are currently not publicly available,
-    although the National Weather Service may make these data accessible through an API in the future."))
+    although the National Weather Service may make these data accessible through an API in the future.")),
+  p("An example synthetic dataset with can be accessed through the 'Use example data' 
+    button")
 )
+
 
 tool_text$methods <- list(
   h2("Methods"),
