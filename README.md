@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This app is designed to help local government departments estimate how heat impacts their operations and clients. It has a simple GUI, allows departments to upload their own data, and produces plots and results tables. It can be hosted by anyone with access to an R Shiny server. To use the app with their data, users simply upload a .csv file.
+This app is designed to help local government departments estimate how heat impacts their operations and clients. It has a simple GUI, allows departments to upload their own data, and produces plots and results tables. It can be hosted by anyone with access to an R Shiny server. To use the app with their data, users simply upload a .csv file. Example data has been provided and can be accessed with the "Use example data" button.
  
 ## Data
 
