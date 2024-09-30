@@ -7,10 +7,14 @@
 *.Rproj
 
 ## Environment
+/renv/.gitignore
 /renv/library/
 /renv/sandbox/
 /renv/staging/
 /renv/settings.json
+
+## rsconnect
+/rsconnect/*
 
 ## Scripts
 tool_license_check.R
